@@ -1,0 +1,9 @@
+not like gephi, only for algorithm visualization
+
+coloring
+edge selection
+node selection
+node merge
+
+kargers
+kruskal

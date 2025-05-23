@@ -1,1 +1,4 @@
 zig build-exe -fno-entry src/main.zig -target wasm32-freestanding -rdynamic
+
+https://github.com/zadockmaloba/zig-wasm-exercises
+https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_network.json
