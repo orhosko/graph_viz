@@ -1,0 +1,1 @@
+zig build-exe -fno-entry src/main.zig -target wasm32-freestanding -rdynamic
