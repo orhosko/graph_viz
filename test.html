@@ -8,8 +8,46 @@
 <!-- Load d3.js -->
 <script src="https://d3js.org/d3.v6.js"></script>
 
+<div id="main">
+
+<div id="left-bar">
+
+<label for="load_wasm">Upload a file:</label>
+<input type="file" id="load_wasm">
+
+<br><br>
+
+<button onclick="myFunction()">Delete a random node and an edge</button>
+</div>
+
 <!-- Create a div where the graph will take place -->
 <div id="my_dataviz"></div>
+
+</div>
+
+<style>
+  #main {
+    display: flex;
+    flex-direction: row;
+  }
+
+  #left-bar {
+    width: 200px;
+    height: 800px;
+    background-color: #f0f0f0;
+    padding: 20px;
+    margin-right: 20px;
+  }
+
+  #my_dataviz {
+    font: 10px sans-serif;
+    text-align: center;
+    margin: auto;
+    border: 1px solid #ccc;
+    width: 800px;
+    height: 800px;
+  }
+</style>
 
 <script>
 
@@ -123,4 +161,99 @@ function myFunction(){
 }
 </script>
 
-<button onclick="myFunction()">Click me</button>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('load_wasm');
+            let wasmExports = null; // To store the WASM exports once loaded
+
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    console.log("No file selected.");
+                    return;
+                }
+
+                if (file.name.split('.').pop().toLowerCase() !== 'wasm') {
+                    alert("Please upload a .wasm file.");
+                    fileInput.value = ''; // Clear the input
+                    return;
+                }
+
+                console.log(`Selected file: ${file.name}`);
+
+                try {
+                    // Read the file as an ArrayBuffer
+                    const arrayBuffer = await file.arrayBuffer();
+                    console.log("File read as ArrayBuffer.");
+                    console.log(arrayBuffer);
+
+                    
+              importObject={
+                env: {
+                  jsLog: (ptr, len) => {
+                    const msg = decodeStr(ptr, len);
+                    document.querySelector("#log").textContent = msg;
+                    console.log(msg);
+                  }, }
+                //env: {}
+                //env: {
+                //  STACKTOP: 0,
+                //  STACK_MAX:65536,
+                //  abortStackOverflow: function(val) { throw new Error("stackoverfow"); },
+                //  memory: new WebAssembly.Memory( { initial: 256, maximum:256 } ),
+                //  table: new WebAssembly.Table( { initial:0, maximum:0, element: "anyfunc" } ),
+                //  __linear_memory: new WebAssembly.Memory({initial: 256}),
+                //  __stack_pointer: 0,
+                //  memoryBase:0,
+                //  tableBase:0
+                //}
+              }
+                    // Instantiate the WebAssembly module from the ArrayBuffer
+                    const { instance } = await WebAssembly.instantiate(arrayBuffer, importObject);
+
+                    wasmExports = instance.exports;
+                    console.log("WASM module loaded successfully!");
+
+                    console.log("WASM exports:", wasmExports);
+
+                    // Example: Assuming your add.wasm has an 'add' function
+                    if (wasmExports.add) {
+                        console.log(`Result of add(4, 1): ${wasmExports.add(4, 1)}`);
+                    } else {
+                        console.warn("The loaded WASM module does not have an 'add' function.");
+                    }
+
+                } catch (error) {
+                    console.error("Error loading WASM file:", error);
+                    alert("Failed to load WASM file. Check console for details.");
+                }
+            });
+
+            // The original init function (modified to be called on file selection)
+            // async function init() {
+            //     // This function is now superseded by the file input's change event listener
+            //     // where the WASM is loaded from the selected file.
+            //     // If you still need a default WASM to load on page load, you can keep a modified version here.
+            // }
+
+            // You can optionally call the init function if you want to load a default WASM on page load
+            // For example, if you have a default `add.wasm` in the same directory:
+            /*
+            async function loadDefaultWASM() {
+                try {
+                    const { instance } = await WebAssembly.instantiateStreaming(
+                        fetch("./add.wasm")
+                    );
+                    wasmExports = instance.exports;
+                    console.log("Default WASM loaded successfully!");
+                    if (wasmExports.add) {
+                        console.log(`Result of default add(4, 1): ${wasmExports.add(4, 1)}`);
+                    }
+                } catch (error) {
+                    console.warn("Could not load default WASM (add.wasm). Please select a file.", error);
+                }
+            }
+            loadDefaultWASM();
+            */
+        });
+</script>
