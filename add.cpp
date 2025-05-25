@@ -88,4 +88,3 @@ EMSCRIPTEN_BINDINGS(module) {
     emscripten::register_vector<int>("IntVector");
     emscripten::function("run", &run);
 }
-
