@@ -1,0 +1,1 @@
+/home/berkay/Documents/projects/emsdk/upstream/emscripten/em++ -s WASM=1 -s NO_EXIT_RUNTIME=1 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['run'] -lembind --bind @CMakeFiles/graph_viz.dir/objects1.rsp -o graph_viz.js

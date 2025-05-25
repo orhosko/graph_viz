@@ -7,3 +7,8 @@ node merge
 
 kargers
 kruskal
+
+* wasmtime
+* zig c++ test.cpp -target wasm32-wasi -dynamic
+  - wasmtime src/main.wasm 123 asd
+  - zig c++ build-lib zigdom.zig -target wasm32-freestanding -dynamic -OReleaseSmall

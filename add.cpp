@@ -1,22 +1,12 @@
 #include <array>
+#include <emscripten/bind.h>
+#include <emscripten/emscripten.h>
 #include <iostream>
-
-int add(int a, int b) { return (a * a) + b; }
-
-struct Square {
-    // int x;
-    // int y;
-    int index;
-    int value;
-};
-
-// TODO: make constexpr
-
-std::array<std::array<Square, 4>, 4> board;
+#include <vector>
 
 std::array<std::array<int, 16>, 16> adjMatrix{};
 
-void create_row_deps(std::array<std::array<int, 16>, 16> &adjMartix) {
+void create_row_deps() {
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < 4; ++j) {
             if (i % 4 != j) {
@@ -26,7 +16,7 @@ void create_row_deps(std::array<std::array<int, 16>, 16> &adjMartix) {
     }
 }
 
-void create_col_deps(std::array<std::array<int, 16>, 16> adjMartix) {
+void create_col_deps() {
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < 4; ++j) {
             if (i / 4 != j) {
@@ -36,7 +26,7 @@ void create_col_deps(std::array<std::array<int, 16>, 16> adjMartix) {
     }
 }
 
-void create_block_deps(std::array<std::array<int, 16>, 16> adjMartix) {
+void create_block_deps() {
     for (int i = 0; i < 16; ++i) {
         int x = i % 4;
         int y = i / 4;
@@ -53,21 +43,36 @@ void create_block_deps(std::array<std::array<int, 16>, 16> adjMartix) {
     }
 }
 
-void normalize_adj_matrix(std::array<std::array<int, 16>, 16> &adjMatrix) {
+void normalize_adj_matrix() {
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < 16; ++j) {
-          adjMatrix[i][j] = std::min(adjMatrix[i][j], 1);
+            adjMatrix[i][j] = std::min(adjMatrix[i][j], 1);
         }
     }
 }
 
-int main() {
-    create_row_deps(adjMatrix);
-    create_col_deps(adjMatrix);
-    create_block_deps(adjMatrix);
+// Function to get the adjacency matrix as a flat vector
+std::vector<int> get_adjacency_matrix() {
+    std::vector<int> flat_matrix;
+    flat_matrix.reserve(256); // 16x16
+    
+    for (const auto& row : adjMatrix) {
+        for (int val : row) {
+            flat_matrix.push_back(val);
+        }
+    }
+    
+    return flat_matrix;
+}
 
-    normalize_adj_matrix(adjMatrix);
+// Main function to run the algorithm and return the result
+std::vector<int> run() {
+    create_row_deps();
+    create_col_deps();
+    create_block_deps();
+    normalize_adj_matrix();
 
+    // Print the matrix to console for debugging
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < 16; ++j) {
             std::cout << adjMatrix[i][j] << " ";
@@ -75,6 +80,12 @@ int main() {
         std::cout << std::endl;
     }
 
-    return 0;
+    return get_adjacency_matrix();
+}
+
+// Binding code
+EMSCRIPTEN_BINDINGS(module) {
+    emscripten::register_vector<int>("IntVector");
+    emscripten::function("run", &run);
 }
 

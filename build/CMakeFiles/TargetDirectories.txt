@@ -1,0 +1,3 @@
+/home/berkay/Documents/projects/graph_viz/build/CMakeFiles/graph_viz.dir
+/home/berkay/Documents/projects/graph_viz/build/CMakeFiles/edit_cache.dir
+/home/berkay/Documents/projects/graph_viz/build/CMakeFiles/rebuild_cache.dir
