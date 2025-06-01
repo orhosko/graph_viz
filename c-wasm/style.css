@@ -1,0 +1,21 @@
+#main {
+  display: flex;
+  flex-direction: row;
+}
+
+#left-bar {
+  width: 200px;
+  height: 800px;
+  background-color: #f0f0f0;
+  padding: 20px;
+  margin-right: 20px;
+}
+
+#my_dataviz {
+  font: 10px sans-serif;
+  text-align: center;
+  margin: auto;
+  border: 1px solid #ccc;
+  width: 800px;
+  height: 800px;
+}

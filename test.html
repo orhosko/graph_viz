@@ -223,6 +223,13 @@ function myFunction(){
                         console.warn("The loaded WASM module does not have an 'add' function.");
                     }
 
+                    if (wasmExports.create_col_deps) {
+                        console.log("create_col_deps");
+                        wasmExports.create_col_deps();
+                    } else {
+                        console.warn("The loaded WASM module does not have an 'create_col_deps' function.");
+                    }
+
                 } catch (error) {
                     console.error("Error loading WASM file:", error);
                     alert("Failed to load WASM file. Check console for details.");

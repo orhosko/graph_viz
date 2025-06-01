@@ -1,8 +1,18 @@
-#include <array>
-#include <iostream>
+#include <emscripten.h>
+#include <stdlib.h>
 
-int add(int a, int b) { return (a * a) + b; }
+EMSCRIPTEN_KEEPALIVE
+extern "C" {
+int* add(int a, int b) { return (int*)(a * a) + b; }
 
+int* run() {
+    int* a = (int*)malloc(sizeof(int));
+    *a = 1;
+    return a;
+}
+}
+
+/*
 struct Square {
     // int x;
     // int y;
@@ -61,7 +71,7 @@ void normalize_adj_matrix(std::array<std::array<int, 16>, 16> &adjMatrix) {
     }
 }
 
-int main() {
+int run() {
     create_row_deps(adjMatrix);
     create_col_deps(adjMatrix);
     create_block_deps(adjMatrix);
@@ -78,3 +88,4 @@ int main() {
     return 0;
 }
 
+*/

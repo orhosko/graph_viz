@@ -1,16 +1,20 @@
+var exports;
+
 async function init() {
   const { instance } = await WebAssembly.instantiateStreaming(
-    fetch("./add.wasm")
+    fetch("./add_module.wasm")
   );
-  console.log(instance.exports.add(4, 1));
+  console.log("add:", instance.exports.add(4, 1));
+  console.log("run:", instance.exports.run());
 
+  exports = instance.exports;
   return instance.exports;
 }
 
 init().then((result) => {
-    console.log(result);
-        }
-           );
+  exports = result;
+  console.log(exports)
+});
 
 const adjacencyMatrix = [
   [0, 1, 0, 0],
