@@ -1,8 +1,10 @@
 let wasmExports = null; // To store the WASM exports once loaded
 
 // Create a flat array for the matrix
-const MATRIX_SIZE = 32;
+const MATRIX_SIZE = 64;
 let adjMatrix = new Int32Array(MATRIX_SIZE * MATRIX_SIZE);
+
+let active_node_count = -1;
 
 // D3 variables
 let svg, link, node;
@@ -30,17 +32,28 @@ function cstr_by_ptr(mem_buffer, ptr) {
     const bytes = new Uint8Array(mem_buffer, ptr, len);
     return new TextDecoder().decode(bytes);
 }
+function delete_node(node) {
+    // get the adjacency matrix
+    const memory = new Int32Array(wasmExports.memory.buffer);
+    const adjMatrix = memory.slice(0, MATRIX_SIZE * MATRIX_SIZE);
 
+    // delete node by removing all its edges
+    for (let i = 0; i < MATRIX_SIZE; i++) {
+        adjMatrix[node * MATRIX_SIZE + i] = 0;
+        adjMatrix[i * MATRIX_SIZE + node] = 0;
+    }
+}
 function updateGraph() {
     // Convert adjacency matrix to graph data
     links = [];
     nodes = [];
     
+    const memory = new Int32Array(wasmExports.memory.buffer);
+    const offset = wasmExports.get_node_colors();
     // Create nodes
-    for (let i = 0; i < MATRIX_SIZE; i++) {
+    for (let i = 0; i < active_node_count; i++) {
         // Get color from WebAssembly memory
-        const memory = new Int32Array(wasmExports.memory.buffer);
-        const colorIndex = memory[MATRIX_SIZE * MATRIX_SIZE + 16+ i]; // Color array starts after the adjacency matrix
+        const colorIndex = memory[offset /4+ i]; // Color array starts after the adjacency matrix
         nodes.push({ 
             id: i,
             color: colorIndex > 0 ? colorScale(colorIndex) : '#69b3a2' // Default color if no color assigned
@@ -48,9 +61,9 @@ function updateGraph() {
     }
     
     // Create links from adjacency matrix
-    for (let i = 0; i < MATRIX_SIZE; i++) {
-        for (let j = 0; j < MATRIX_SIZE; j++) {
-            if (adjMatrix[i * MATRIX_SIZE + j] > 0) {
+    for (let i = 0; i < active_node_count; i++) {
+        for (let j = 0; j < active_node_count; j++) {
+            for (let k = 0; k < adjMatrix[i*MATRIX_SIZE+j]; k++) {
                 links.push({ source: i, target: j });
             }
         }
@@ -163,15 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const importObject = {
                 env: {
                     jsLog: (ptr) => {
-                        console.log("jsLog", ptr);
                         const msg = decodeStr(ptr, 128);
-                        document.querySelector("#log").textContent = msg;
-                        console.log(msg);
+                        console.log("msg", msg);
+                        document.querySelector("#log").textContent += ("\n" + msg);
                     },
-                    ummm: "wtf",
                     updateGraph: updateGraph,
                     merge_nodes: merge_nodes,
-                    delete_node: delete_node,
                     rand: () => {
                         return Math.floor(Math.random() * 16);
                     }
@@ -186,28 +196,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log("WASM exports:", wasmExports);
 
-            if (wasmExports.add) {
-                console.log(`Result of add(4, 1): ${wasmExports.add(4, 1)}`);
-            } else {
-                console.warn("The loaded WASM module does not have an 'add' function.");
-            }
-
             if (wasmExports.init) {
                 if (!document.getElementById("graph_from_wasm").checked) {
                     console.log("Graph from module is off, skipping init");
                     return;
                 }
 
-                const offset = wasmExports.get_adjMatrix();
-                console.log("adjMatrix offset", offset);
+                active_node_count = wasmExports.get_active_node_count();
 
-                console.log("init");
+                const offset = wasmExports.get_adjMatrix();
+
                 // Copy the matrix to WebAssembly memory
                 const memory = new Int32Array(wasmExports.memory.buffer);
-                memory.set(adjMatrix);
+                memory.set(adjMatrix, offset);
                 wasmExports.init(offset); // Pass the offset in memory
                 // Copy the modified matrix back
-                adjMatrix.set(memory.slice(offset, offset + MATRIX_SIZE * MATRIX_SIZE));
+                adjMatrix.set(memory.slice(offset / 4, offset / 4 + MATRIX_SIZE * MATRIX_SIZE));
                 // Update the graph visualization
                 updateGraph();
             } else {
@@ -272,18 +276,6 @@ function merge_nodes(node1, node2) {
     updateGraph();
 }
 
-function delete_node(node) {
-    // get the adjacency matrix
-    const memory = new Int32Array(wasmExports.memory.buffer);
-    const adjMatrix = memory.slice(0, MATRIX_SIZE * MATRIX_SIZE);
-
-    // delete node by removing all its edges
-    for (let i = 0; i < MATRIX_SIZE; i++) {
-        adjMatrix[node * MATRIX_SIZE + i] = 0;
-        adjMatrix[i * MATRIX_SIZE + node] = 0;
-    }
-}
-
 function step() {
     if (!wasmExports.step) {
         console.warn("The loaded WASM module does not have a 'step' function.");
@@ -291,7 +283,12 @@ function step() {
     }
 
     const memory = new Int32Array(wasmExports.memory.buffer);
-    memory.set(adjMatrix);
-    wasmExports.step(0); // Pass the offset in memory
-    adjMatrix.set(memory.slice(0, MATRIX_SIZE * MATRIX_SIZE));
+    const offset = wasmExports.get_adjMatrix();
+    memory.set(adjMatrix, offset);
+    wasmExports.step(offset); // Pass the offset in memory
+    adjMatrix.set(memory.slice(offset / 4, offset / 4 + MATRIX_SIZE * MATRIX_SIZE));
+
+    active_node_count = wasmExports.get_active_node_count();
+
+    updateGraph();
 }

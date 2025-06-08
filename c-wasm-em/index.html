@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v6.js"></script>
+
+<script defer src="c-wasm.js"></script>
+
+<body>
+
+<div id="main">
+  <div id="left-bar">
+    <label for="graph_from_wasm">Take graph from module</label>
+    <input type="checkbox" id="graph_from_wasm" checked>
+    <br>
+    <br>
+    <label for="load_wasm">Upload a file:</label>
+    <input type="file" id="load_wasm">
+    <br>
+    <br>
+    <button onclick="step()">Step</button>
+    <br>
+    <br>
+    <button onclick="updateGraph()">Update Graph</button>
+    <br>
+    <br>
+    <div id="log-header">Log from C:</div>
+    <div id="log"></div>
+  </div>
+
+  <!-- Create a div where the graph will take place -->
+  <div id="my_dataviz"></div>
+</div>
+</body>
+

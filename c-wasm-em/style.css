@@ -1,0 +1,47 @@
+body {
+    background-color: #fff;
+    color: #000;
+    font-family: sans-serif;
+}
+
+#main {
+  display: flex;
+  flex-direction: row;
+}
+
+#left-bar {
+  width: 200px;
+  height: 800px;
+  background-color: #f0f0f0;
+  padding: 20px;
+  margin-right: 20px;
+  border-radius: 5px;
+}
+
+#my_dataviz {
+  font: 10px sans-serif;
+  text-align: center;
+  margin: auto;
+  border: 1px solid #ccc;
+  width: 800px;
+  height: 800px;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #121212;
+        color: #eee;
+    }
+
+    #left-bar {
+        background-color: #1e1e1e;
+        border: 1px solid #333;
+    }
+
+    #my_dataviz {
+        border: 1px solid #333;
+        background-color: #222;
+    }
+}
