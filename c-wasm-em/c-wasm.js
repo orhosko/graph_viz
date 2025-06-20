@@ -36,17 +36,38 @@ function cstr_by_ptr(mem_buffer, ptr) {
     const bytes = new Uint8Array(mem_buffer, ptr, len);
     return new TextDecoder().decode(bytes);
 }
-function delete_node(node) {
-    // get the adjacency matrix
-    const memory = new Int32Array(wasmExports.memory.buffer);
-    const adjMatrix = memory.slice(0, MATRIX_SIZE * MATRIX_SIZE);
 
-    // delete node by removing all its edges
-    for (let i = 0; i < MATRIX_SIZE; i++) {
-        adjMatrix[node * MATRIX_SIZE + i] = 0;
-        adjMatrix[i * MATRIX_SIZE + node] = 0;
+// Custom force: applies a per-edge strength between source and target
+function forceEdgeStrength(links, strengths) {
+    // strengths: array of numbers, same order as links
+    let nodes;
+    function force(alpha) {
+        for (let i = 0; i < links.length; ++i) {
+            const link = links[i];
+            const s = strengths[i] || 0;
+            const source = typeof link.source === 'object' ? link.source : nodes[link.source];
+            const target = typeof link.target === 'object' ? link.target : nodes[link.target];
+            // Vector from source to target
+            let dx = (target.x - source.x) || 0;
+            let dy = (target.y - source.y) || 0;
+            // Normalize
+            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            dx /= dist;
+            dy /= dist;
+            // Apply force in both directions
+            // s > 0 pulls together, s < 0 pushes apart
+            source.vx += s * dx * alpha*10;
+            source.vy += s * dy * alpha*10;
+            target.vx -= s * dx * alpha*10;
+            target.vy -= s * dy * alpha*10;
+        }
     }
+    force.initialize = function(_nodes) {
+        nodes = _nodes;
+    };
+    return force;
 }
+
 function updateGraph() {
     // Convert adjacency matrix to graph data
     links = [];
@@ -60,10 +81,11 @@ function updateGraph() {
         const colorIndex = memory[offset /4+ i]; // Color array starts after the adjacency matrix
         nodes.push({ 
             id: i,
-            color: colorIndex > 0 ? colorScale(colorIndex) : '#69b3a2' // Default color if no color assigned
+            color: colorIndex > 0 ? colorScale(colorIndex) : '#69b3a2', // Default color if no color assigned
+            isSelected: selectedNodes.includes(i)
         });
     }
-    
+
     // Create links from adjacency matrix
     for (let i = 0; i < active_node_count; i++) {
         for (let j = 0; j < active_node_count; j++) {
@@ -86,7 +108,23 @@ function updateGraph() {
         .data(nodes)
         .join("circle")
         .attr("r", 20)
-        .style("fill", d => d.color);
+        .style("fill", d => d.isSelected ? '#ff0000' : d.color)
+        .style("stroke", d => d.isSelected ? '#000' : 'none')
+        .style("stroke-width", d => d.isSelected ? 2 : 0);
+
+    // Fetch edge strengths from WASM memory
+    let edgeStrengths = [];
+    if (wasmExports.get_edge_strengths) {
+        const edgeStrengthsOffset = wasmExports.get_edge_strengths();
+        // Try to get enough strengths for all links, fallback to 0 if not enough
+        for (let i = 0; i < active_node_count; i++) {
+            edgeStrengths[i] = memory[edgeStrengthsOffset / 4 + i] || 0;
+            console.log(i, ": ", edgeStrengths[i]);
+        }
+    } else {
+        console.log("using default edge strengths");
+        edgeStrengths = Array(links.length).fill(0);
+    }
 
     // Update the simulation
     const simulation = d3.forceSimulation(nodes)
@@ -95,6 +133,7 @@ function updateGraph() {
             .links(links))
         .force("charge", d3.forceManyBody().strength(-400))
         .force("center", d3.forceCenter(400, 400))
+        .force("edgeStrength", forceEdgeStrength(links, edgeStrengths))
         .on("tick", ticked);
 
     function ticked() {
@@ -351,8 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                active_node_count = wasmExports.get_active_node_count();
-
                 const offset = wasmExports.get_adjMatrix();
 
                 // Copy the matrix to WebAssembly memory
@@ -361,6 +398,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 wasmExports.init(offset); // Pass the offset in memory
                 // Copy the modified matrix back
                 adjMatrix.set(memory.slice(offset / 4, offset / 4 + MATRIX_SIZE * MATRIX_SIZE));
+
+                active_node_count = wasmExports.get_active_node_count();
                 // Update the graph visualization
                 updateGraph();
             } else {
@@ -433,11 +472,19 @@ function step() {
 
     const memory = new Int32Array(wasmExports.memory.buffer);
     const offset = wasmExports.get_adjMatrix();
-    memory.set(adjMatrix, offset);
+    memory.set(adjMatrix, offset/4);
     wasmExports.step(offset); // Pass the offset in memory
-    adjMatrix.set(memory.slice(offset / 4, offset / 4 + MATRIX_SIZE * MATRIX_SIZE));
+    adjMatrix.set(new Uint32Array(wasmExports.memory.buffer, offset, adjMatrix.length));
 
-    active_node_count = wasmExports.get_active_node_count();
+    console.log("Offset (bytes):", offset);
+    console.log("Offset (index):", offset / 4);
+    console.log("JS matrix before:", adjMatrix);
+    console.log("Memory before copy:", memory.slice(offset / 4, offset / 4 + adjMatrix.length));
+
+    const n = wasmExports.get_active_node_count();
+    console.log("Active node count:", n);
+
+    active_node_count = n;
 
     updateGraph();
 }
