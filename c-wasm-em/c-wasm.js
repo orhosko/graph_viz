@@ -19,6 +19,9 @@ const colorScale = d3.scaleOrdinal()
     .domain([1, 2, 3, 4])
     .range(['#69b3a2', '#ff7f0e', '#2ca02c', '#d62728']);
 
+let simulation = null; // Store simulation globally
+let simulationPaused = false; // Track simulation state
+
 function cstrlen(mem, ptr) {
     console.log("cstrlen", mem, ptr);
     let len = 0;
@@ -127,7 +130,8 @@ function updateGraph() {
     }
 
     // Update the simulation
-    const simulation = d3.forceSimulation(nodes)
+    if (simulation) simulation.stop(); // Stop previous simulation if running
+    simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink()
             .id(d => d.id)
             .links(links))
@@ -176,6 +180,10 @@ function updateGraph() {
         event.subject.fx = null;
         event.subject.fy = null;
     }
+
+    simulationPaused = false;
+    const stopPhysicsButton = document.getElementById('stop-physics');
+    if (stopPhysicsButton) stopPhysicsButton.textContent = 'Stop Physics';
 }
 
 function handleNodeClick(event, d) {
@@ -412,32 +420,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // The original init function (modified to be called on file selection)
-    // async function init() {
-    //     // This function is now superseded by the file input's change event listener
-    //     // where the WASM is loaded from the selected file.
-    //     // If you still need a default WASM to load on page load, you can keep a modified version here.
-    // }
-
-    // You can optionally call the init function if you want to load a default WASM on page load
-    // For example, if you have a default `add.wasm` in the same directory:
-    /*
-    async function loadDefaultWASM() {
-        try {
-            const { instance } = await WebAssembly.instantiateStreaming(
-                fetch("./add.wasm")
-            );
-            wasmExports = instance.exports;
-            console.log("Default WASM loaded successfully!");
-            if (wasmExports.add) {
-                console.log(`Result of default add(4, 1): ${wasmExports.add(4, 1)}`);
+    // Add stop physics button handler
+    const stopPhysicsButton = document.getElementById('stop-physics');
+    if (stopPhysicsButton) {
+        stopPhysicsButton.addEventListener('click', () => {
+            if (!simulationPaused) {
+                if (simulation) simulation.stop();
+                simulationPaused = true;
+                stopPhysicsButton.textContent = 'Resume Physics';
+            } else {
+                // Resume: restart simulation with current nodes/links
+                if (simulation) simulation.alpha(0.3).restart();
+                simulationPaused = false;
+                stopPhysicsButton.textContent = 'Stop Physics';
             }
-        } catch (error) {
-            console.warn("Could not load default WASM (add.wasm). Please select a file.", error);
-        }
+        });
     }
-    loadDefaultWASM();
-    */
 });
 
 function merge_nodes(node1, node2) {

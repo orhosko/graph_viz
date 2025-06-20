@@ -1,9 +1,3 @@
-not like gephi, only for algorithm visualization
+graph algorithm visualization
 
-coloring
-edge selection
-node selection
-node merge
-
-kargers
-kruskal
+please check out folder c-wasm-em/

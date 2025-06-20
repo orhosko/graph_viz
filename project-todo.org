@@ -1,6 +1,0 @@
-* Emscripten olmadan c den jsteki bi arrayi doldurma
-* step(), bittiyse 1 döndürsün
-* stop physics button
-* emscripten + c
-* zig
-* c++ - stdlib + extern c = neredeyse c, o yüzden emscripten + c++

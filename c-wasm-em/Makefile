@@ -12,3 +12,6 @@ physics_test.wasm: physics_test.c viz.c
 	emcc physics_test.c viz.c -o physics_test.wasm \
 		$(EXPORTED_FUNCS) \
 		$(EMCC_FLAGS)
+
+serve:
+	python -m http.server -d ..
