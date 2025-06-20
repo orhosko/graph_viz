@@ -1,31 +1,6 @@
-#include <stdio.h>
-#include <string.h>
+#include "viz.h"
 
-extern void jsLog(char* msg);
-extern void updateGraph();
-extern int rand();
-
-#define MATRIX_SIZE 64
-int adjMatrix[MATRIX_SIZE * MATRIX_SIZE] = {0};
-
-int* get_adjMatrix() {
-    return adjMatrix;
-}
-
-int node_colors[MATRIX_SIZE] = {0};
-
-int* get_node_colors() {
-    return node_colors;
-}
-
-int n = 2;
-int active_node_count = 2*2;  // Track active nodes separately from matrix size
-
-int get_active_node_count() {
-    return active_node_count;
-}
-
-char msg_buffer[128];
+int n = 4;
 
 void create_row_deps(int* adjMatrix) {
     for (int i = 0; i < active_node_count; ++i) {
@@ -75,6 +50,7 @@ void normalize_adj_matrix(int* adjMatrix) {
 }
 
 void init(int* adjMatrix) {
+    active_node_count = 16;
     jsLog("init");
 
     strncpy(msg_buffer, "init", sizeof(msg_buffer));
@@ -95,61 +71,14 @@ void init(int* adjMatrix) {
     }
 }
 
-void run(int* adjMatrix) {
-    // apply karger algorithm
-
-}
-
-void removeNode(int* adjMatrix, int node_index) {
-    if (node_index < 0 || node_index >= active_node_count)
-        return;
-
-    // Shift rows up (row i <- row i+1)
-    for (int i = node_index; i < active_node_count - 1; ++i) {
-        for (int j = 0; j < active_node_count; ++j) {
-            adjMatrix[i * MATRIX_SIZE + j] = adjMatrix[(i + 1) * MATRIX_SIZE + j];
-        }
-    }
-
-    // Shift columns left (col j <- col j+1)
-    for (int i = 0; i < active_node_count; ++i) {
-        for (int j = node_index; j < active_node_count - 1; ++j) {
-            adjMatrix[i * MATRIX_SIZE + j] = adjMatrix[i * MATRIX_SIZE + j + 1];
-        }
-    }
-
-    for (int i = 0; i < active_node_count; i++) {
-            adjMatrix[i * MATRIX_SIZE + active_node_count] = 0;
-            adjMatrix[active_node_count * MATRIX_SIZE + i] = 0;
-    }
-
-    // Decrease active node count
-    active_node_count--;
-}
-
-void merge_nodes(int* adjMatrix, int node1, int node2) {
-    if (node1 >= active_node_count || node2 >= active_node_count) return;  // Safety check
-
-    if(node1 == node2) return;
-    if(active_node_count == 2) return;
-
-    // merge node2 into node1 by combining their edges
-    for (int i = 0; i < active_node_count; i++) {
-        if (adjMatrix[node2 * MATRIX_SIZE + i] > 0 || adjMatrix[node1 * MATRIX_SIZE + i] > 0) {
-            adjMatrix[node1 * MATRIX_SIZE + i] += adjMatrix[node2 * MATRIX_SIZE + i];
-            adjMatrix[i * MATRIX_SIZE + node1] += adjMatrix[i * MATRIX_SIZE + node2]; // Make it symmetric
-        }
-    }
-
-    // remove self-loop
-    adjMatrix[node1 * MATRIX_SIZE + node1] = 0;
-
-    removeNode(adjMatrix, node2);
+int print_active_node_count() {
+    sprintf(msg_buffer, "active_node_count: %d\n", active_node_count);
+    jsLog(msg_buffer);
+    return active_node_count;
 }
 
 void step(int* adjMatrix) {
-    // sprintf(msg_buffer, "%p", adjMatrix);
-    // jsLog(msg_buffer);
+    active_node_count = calculate_node_count(adjMatrix);
 
     if (active_node_count <= 1) return;  // Safety check
 
@@ -157,7 +86,7 @@ void step(int* adjMatrix) {
     int node2 = rand() % active_node_count;
     sprintf(msg_buffer, "node1: %d, node2: %d\n", node1, node2);
     jsLog(msg_buffer);
-    merge_nodes(adjMatrix, node1, node2);
+    merge_nodes(adjMatrix, active_node_count, node1, node2);
 
     updateGraph();
 }
