@@ -1,3 +1,8 @@
 graph algorithm visualization
 
 please check out folder c-wasm-em/
+
+#+BEGIN_SRC sh
+    python3 -m http.server
+    # then select module in c-wasm-em/test.wasm from the ui
+#+END_SRC
