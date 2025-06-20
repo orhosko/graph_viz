@@ -27,6 +27,32 @@
     <button onclick="updateGraph()">Update Graph</button>
     <br>
     <br>
+    <div class="mode-buttons">
+      <button id="add-mode" class="mode-button" title="Add Mode">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="16"/>
+          <line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+      </button>
+      <button id="delete-mode" class="mode-button" title="Delete Mode">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="8" y1="8" x2="16" y2="16"/>
+          <line x1="16" y1="8" x2="8" y2="16"/>
+        </svg>
+      </button>
+      <button id="move-mode" class="mode-button active" title="Move Mode">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L8 6H16L12 2Z"/>
+          <path d="M12 22L8 18H16L12 22Z"/>
+          <path d="M2 12L6 8V16L2 12Z"/>
+          <path d="M22 12L18 8V16L22 12Z"/>
+        </svg>
+      </button>
+    </div>
+    <div id="mode-status">Current Mode: Move</div>
+    <br>
     <div id="log-header">Log from C:</div>
     <div id="log"></div>
   </div>

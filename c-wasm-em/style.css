@@ -29,6 +29,52 @@ body {
   background-color: #fff;
 }
 
+.mode-buttons {
+    margin: 10px 0;
+    display: flex;
+    gap: 8px;
+}
+
+.mode-button {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mode-button:hover {
+    background-color: #e8e8e8;
+    transform: translateY(-1px);
+}
+
+.mode-button.active {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #45a049;
+}
+
+.mode-button.active svg {
+    stroke: white;
+}
+
+.mode-button svg {
+    stroke: #333;
+    transition: stroke 0.3s ease;
+}
+
+#mode-status {
+    margin: 10px 0;
+    font-weight: bold;
+    color: #333;
+}
+
 @media (prefers-color-scheme: dark) {
     body {
         background-color: #121212;

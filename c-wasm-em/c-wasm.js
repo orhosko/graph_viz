@@ -10,6 +10,10 @@ let active_node_count = -1;
 let svg, link, node;
 let links = [], nodes = [];
 
+// Mode and selection tracking
+let currentMode = 'move';
+let selectedNodes = [];
+
 // Color scale for nodes
 const colorScale = d3.scaleOrdinal()
     .domain([1, 2, 3, 4])
@@ -105,6 +109,12 @@ function updateGraph() {
             .attr("cy", d => d.y);
     }
 
+    // Add click behavior
+    node.on("click", handleNodeClick);
+
+    // Add click behavior to the background
+    d3.select("#my_dataviz").on("click", handleBackgroundClick);
+
     // Add drag behavior
     node.call(d3.drag()
         .on("start", dragstarted)
@@ -127,6 +137,112 @@ function updateGraph() {
         event.subject.fx = null;
         event.subject.fy = null;
     }
+}
+
+function handleNodeClick(event, d) {
+    event.stopPropagation(); // Prevent the click from bubbling to the background
+    
+    if (currentMode === 'move') {
+        // In move mode, just allow dragging
+        return;
+    }
+    
+    if (currentMode === 'add') {
+        if (selectedNodes.includes(d.id)) {
+            // Deselect the node
+            selectedNodes = selectedNodes.filter(id => id !== d.id);
+        } else {
+            // Select the node
+            selectedNodes.push(d.id);
+            
+            // If we have two nodes selected, create an edge
+            if (selectedNodes.length === 2) {
+                const [node1, node2] = selectedNodes;
+                addEdge(node1, node2);
+                selectedNodes = []; // Clear selection after creating edge
+            }
+        }
+    } else if (currentMode === 'delete') {
+        deleteNode(d.id);
+    }
+    
+    updateGraph();
+}
+
+function handleBackgroundClick(event) {
+    if (currentMode === 'move') {
+        // In move mode, do nothing on background click
+        return;
+    }
+    
+    if (currentMode === 'add') {
+        // Get the click coordinates relative to the SVG
+        const [x, y] = d3.pointer(event);
+        
+        // Add a new node at the clicked position
+        if (active_node_count < MATRIX_SIZE - 1) {
+            const newNodeId = active_node_count;
+            active_node_count++;
+            
+            // Add the new node to the visualization
+            nodes.push({
+                id: newNodeId,
+                x: x,
+                y: y,
+                color: '#69b3a2',
+                isSelected: true
+            });
+            
+            // Select the new node
+            selectedNodes = [newNodeId];
+            
+            updateGraph();
+        }
+    }
+}
+
+function addEdge(node1, node2) {
+    if (node1 === node2) return; // Don't create self-loops
+    
+    // Add edge to the adjacency matrix
+    adjMatrix[node1 * MATRIX_SIZE + node2] = 1;
+    adjMatrix[node2 * MATRIX_SIZE + node1] = 1; // Make it symmetric
+    
+    // Update the graph visualization
+    updateGraph();
+}
+
+function runWasmMatrixFunction(wasmFunc, adjMatrix, ...args) {
+    const memory = new Int32Array(wasmExports.memory.buffer);
+    const offset = wasmExports.get_adjMatrix();
+
+    // Copy JS matrix into WASM memory
+    memory.set(adjMatrix, offset / 4);
+
+    // Call the provided WASM function with offset + extra arguments
+    const out = wasmFunc(offset, ...args);
+
+    // Copy the updated matrix back from WASM memory into JS
+    adjMatrix.set(new Uint32Array(wasmExports.memory.buffer, offset, adjMatrix.length));
+
+    updateGraph();
+
+    return out;
+}
+
+function deleteNode(nodeId) {
+    const memory = new Int32Array(wasmExports.memory.buffer);
+    const offset = wasmExports.get_adjMatrix();
+    memory.set(adjMatrix, offset/4);
+    wasmExports.remove_node(offset, nodeId);
+    adjMatrix.set(new Uint32Array(wasmExports.memory.buffer, offset, adjMatrix.length));
+
+    //active_node_count--;
+    console.log("active_node_count", active_node_count);
+    active_node_count = wasmExports.get_active_node_count();
+    console.log("active_node_count", active_node_count);
+
+    updateGraph();
 }
 
 function decodeStr(ptr, len) {
@@ -154,6 +270,39 @@ document.addEventListener('DOMContentLoaded', () => {
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    // Add mode switching functionality
+    const addModeButton = document.getElementById('add-mode');
+    const deleteModeButton = document.getElementById('delete-mode');
+    const moveModeButton = document.getElementById('move-mode');
+    const modeStatus = document.getElementById('mode-status');
+
+    function setActiveMode(mode) {
+        currentMode = mode;
+        // Remove active class from all buttons
+        [addModeButton, deleteModeButton, moveModeButton].forEach(btn => btn.classList.remove('active'));
+        // Add active class to the selected button
+        switch(mode) {
+            case 'add':
+                addModeButton.classList.add('active');
+                modeStatus.textContent = 'Current Mode: Add';
+                break;
+            case 'delete':
+                deleteModeButton.classList.add('active');
+                modeStatus.textContent = 'Current Mode: Delete';
+                break;
+            case 'move':
+                moveModeButton.classList.add('active');
+                modeStatus.textContent = 'Current Mode: Move';
+                break;
+        }
+        selectedNodes = []; // Clear selection when switching modes
+        updateGraph();
+    }
+
+    addModeButton.addEventListener('click', () => setActiveMode('add'));
+    deleteModeButton.addEventListener('click', () => setActiveMode('delete'));
+    moveModeButton.addEventListener('click', () => setActiveMode('move'));
 
     const fileInput = document.getElementById('load_wasm');
 
